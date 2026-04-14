@@ -44,4 +44,3 @@ jobs:
           port: 22
           source: 'dist/*'
           target: '/root/nginx/static/tg-app'
-          strip_components: 1
