@@ -44,3 +44,12 @@ jobs:
           port: 22
           source: 'dist/*'
           target: '/root/nginx/static/tg-app'
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: ls -la /root/nginx/static/tg-app/
