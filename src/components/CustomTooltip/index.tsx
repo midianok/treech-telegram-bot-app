@@ -8,6 +8,7 @@ interface Props extends TooltipProps<number, string> {
 
 export function CustomTooltip({ active, payload, theme }: Props) {
   if (!active || !payload?.length) return null
+  const item = payload[0]
   return (
     <div
       className={styles.tooltip}
@@ -17,7 +18,8 @@ export function CustomTooltip({ active, payload, theme }: Props) {
         color: theme.text,
       }}
     >
-      {payload[0].value} сообщ.
+      {item.name && <div style={{ fontWeight: 600 }}>{item.name}</div>}
+      {item.value} сообщ.
     </div>
   )
 }

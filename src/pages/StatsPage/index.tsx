@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
+  PieChart,
+  Pie,
+  Cell,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import { CustomTooltip } from '../../components/CustomTooltip'
 import { Theme } from '../../hooks/useTheme'
 import { User } from '../../types'
 import styles from './StatsPage.module.css'
+
+const COLORS = [
+  '#5288c1', '#ca5f5f', '#5cb85c', '#f0ad4e',
+  '#9b59b6', '#1abc9c', '#e67e22', '#e91e63',
+  '#00bcd4', '#8bc34a',
+]
 
 interface Props {
   theme: Theme
@@ -52,8 +58,6 @@ export function StatsPage({ theme, onBack }: Props) {
       })
   }, [])
 
-  const chartHeight = Math.max(users.length * 48 + 40, 100)
-
   return (
     <div className={styles.page} style={{ background: theme.bg, color: theme.text }}>
       <div className={styles.header}>
@@ -73,28 +77,40 @@ export function StatsPage({ theme, onBack }: Props) {
       {status === 'empty' && <p style={{ color: theme.hint }}>Нет данных за этот месяц</p>}
 
       {status === 'ok' && (
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart data={users} layout="vertical" margin={{ top: 0, right: 24, bottom: 0, left: 0 }}>
-            <XAxis
-              type="number"
-              tick={{ fill: theme.hint, fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
+        <ResponsiveContainer width="100%" height={360}>
+          <PieChart>
+            <Pie
+              data={users}
+              dataKey="count"
+              nameKey="name"
+              cx="50%"
+              cy="45%"
+              outerRadius={120}
+              label={({ x, y, name, percent }) => {
+                const pct = `${(percent * 100).toFixed(0)}%`
+                if (percent < 0.05) {
+                  return <text x={x} y={y} textAnchor="middle" fill={theme.text} fontSize={12}>{pct}</text>
+                }
+                return (
+                  <text x={x} y={y} textAnchor="middle" fill={theme.text} fontSize={12}>
+                    <tspan x={x} dy="-0.4em">{name}</tspan>
+                    <tspan x={x} dy="1.2em">{pct}</tspan>
+                  </text>
+                )
+              }}
+              labelLine={false}
+            >
+              {users.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip theme={theme} />} />
+            <Legend
+              formatter={(value) => (
+                <span style={{ color: theme.text, fontSize: 13 }}>{value}</span>
+              )}
             />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={130}
-              tick={{ fill: theme.text, fontSize: 13 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              content={<CustomTooltip theme={theme} />}
-              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-            />
-            <Bar dataKey="count" fill={theme.accent} radius={[0, 6, 6, 0]} />
-          </BarChart>
+          </PieChart>
         </ResponsiveContainer>
       )}
     </div>
