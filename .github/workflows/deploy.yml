@@ -26,6 +26,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Clear old files on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          script: rm -rf /root/nginx/static/tg-app && mkdir -p /root/nginx/static/tg-app
+
       - name: Deploy to server
         uses: appleboy/scp-action@v0.1.7
         with:
