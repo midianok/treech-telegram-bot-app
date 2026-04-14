@@ -1,0 +1,22 @@
+.page {
+  min-height: 100vh;
+  padding: 20px 16px;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
