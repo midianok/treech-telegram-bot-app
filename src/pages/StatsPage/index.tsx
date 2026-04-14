@@ -23,8 +23,7 @@ export function StatsPage({ theme, onBack }: Props) {
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    const startParam = window.Telegram?.WebApp.initDataUnsafe.start_param
-    const chatId = startParam?.replace('chatId_', '')
+    const chatId = window.Telegram?.WebApp.initDataUnsafe.chat?.id?.toString()
       ?? new URLSearchParams(window.location.search).get('chatId')
       ?? import.meta.env.VITE_DEBUG_CHAT_ID
     if (!chatId) {
