@@ -36,7 +36,7 @@ export default function App() {
     )
   }
 
-  if (page === 'prompt-detail' && selectedAgent) {
+  if (page === 'prompt-detail') {
     return (
       <PromptDetailPage
         theme={theme}
