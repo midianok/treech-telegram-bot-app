@@ -52,50 +52,60 @@ export function PromptsListPage({ theme, onBack, onSelect, onCreate }: Props) {
 
   return (
     <div className={styles.page} style={{ background: theme.bg, color: theme.text }}>
-      <div className={styles.header}>
-        <button
-          className={styles.backButton}
-          style={{ color: theme.accent }}
-          onClick={onBack}
-        >
+      <div className={styles.header} style={{ borderColor: theme.border }}>
+        <button className={styles.backButton} style={{ color: theme.accent }} onClick={onBack}>
           ← Назад
         </button>
-      </div>
-
-      <div className={styles.titleRow}>
-        <h1 className={styles.title}>Промпты</h1>
-        <button
-          className={styles.createButton}
-          style={{ background: theme.accent }}
-          onClick={onCreate}
-        >
+        <span className={styles.headerTitle}>Промпты</span>
+        <button className={styles.createButton} style={{ color: theme.accent }} onClick={onCreate}>
           + Создать
         </button>
       </div>
 
-      {status === 'loading' && <p style={{ color: theme.hint }}>Загрузка...</p>}
-      {status === 'error' && <p style={{ color: theme.hint }}>{errorMsg}</p>}
-      {status === 'empty' && <p style={{ color: theme.hint }}>Нет промптов</p>}
+      <div className={styles.body}>
+        {status === 'loading' && <p style={{ color: theme.hint }}>Загрузка...</p>}
+        {status === 'error' && <p style={{ color: theme.hint }}>{errorMsg}</p>}
+        {status === 'empty' && <p style={{ color: theme.hint }}>Нет промптов</p>}
 
-      {status === 'ok' && (
-        <ul className={styles.list}>
-          {agents.map(agent => {
-            const isActive = agent.id === activeAgentId
-            return (
-              <li key={agent.id}>
-                <button
-                  className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
-                  style={{ background: theme.accent }}
-                  onClick={() => onSelect(agent)}
-                >
-                  <span>{agent.name}</span>
-                  {isActive && <span className={styles.activeBadge}>✓ активен</span>}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+        {status === 'ok' && (
+          <>
+            <p className={styles.sectionLabel} style={{ color: theme.secondary }}>
+              Все промпты — {agents.length}
+            </p>
+            <ul className={styles.list}>
+              {agents.map(agent => {
+                const isActive = agent.id === activeAgentId
+                return (
+                  <li key={agent.id}>
+                    <button
+                      className={styles.item}
+                      style={{ background: theme.surface, borderColor: theme.border }}
+                      onClick={() => onSelect(agent)}
+                    >
+                      <div className={styles.itemTop}>
+                        <span className={styles.itemName}>{agent.name}</span>
+                        <span
+                          className={styles.statusPill}
+                          style={
+                            isActive
+                              ? { background: '#2ea6ff', color: '#ffffff' }
+                              : { background: '#e5e5ea', color: '#6e6e73' }
+                          }
+                        >
+                          {isActive ? 'активен' : 'неактивен'}
+                        </span>
+                      </div>
+                      <p className={styles.itemPreview} style={{ color: theme.secondary }}>
+                        {agent.prompt}
+                      </p>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   )
 }

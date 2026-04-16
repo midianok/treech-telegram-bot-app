@@ -15,19 +15,38 @@ export function HomePage({ theme, onNavigate }: Props) {
   return (
     <div className={styles.page} style={{ background: theme.bg, color: theme.text }}>
       <button
-        className={styles.navButton}
-        style={{ background: theme.accent }}
+        className={styles.menuButton}
+        style={{ background: theme.surface, borderColor: theme.border }}
         onClick={() => onNavigate('stats')}
       >
-        Статистика
+        <div className={styles.iconWrap} style={{ background: '#ffd60a20' }}>
+          <span className={styles.icon}>📊</span>
+        </div>
+        <div className={styles.textBlock}>
+          <span className={styles.buttonTitle}>Статистика</span>
+          <span className={styles.buttonSubtitle} style={{ color: theme.secondary }}>
+            Активность за месяц
+          </span>
+        </div>
+        <span className={styles.chevron}>›</span>
       </button>
+
       {canSeePrompts && (
         <button
-          className={styles.navButton}
-          style={{ background: theme.accent }}
+          className={styles.menuButton}
+          style={{ background: theme.surface, borderColor: theme.border }}
           onClick={() => onNavigate('prompts')}
         >
-          Промпты
+          <div className={styles.iconWrap} style={{ background: '#2ea6ff20' }}>
+            <span className={styles.icon}>✏️</span>
+          </div>
+          <div className={styles.textBlock}>
+            <span className={styles.buttonTitle}>Промпты</span>
+            <span className={styles.buttonSubtitle} style={{ color: theme.secondary }}>
+              Управление промптами
+            </span>
+          </div>
+          <span className={styles.chevron}>›</span>
         </button>
       )}
     </div>

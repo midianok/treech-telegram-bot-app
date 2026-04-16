@@ -1,0 +1,11 @@
+export const ACCENT = '#2ea6ff'
+export const DANGER = '#ff3b30'
+export const SUCCESS = '#30d158'
+
+export const BG_LIGHT = '#f2f2f7'
+export const BG_DARK  = '#1c1c1e'
+export const SURFACE  = '#ffffff'
+export const SURFACE_DARK = '#2c2c2e'
+export const BORDER   = '#e5e5ea'
+export const BORDER_DARK = '#3a3a3c'
+export const TEXT_SECONDARY = '#8e8e93'

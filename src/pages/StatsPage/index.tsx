@@ -12,11 +12,7 @@ import { Theme } from '../../hooks/useTheme'
 import { User } from '../../types'
 import styles from './StatsPage.module.css'
 
-const COLORS = [
-  '#5288c1', '#ca5f5f', '#5cb85c', '#f0ad4e',
-  '#9b59b6', '#1abc9c', '#e67e22', '#e91e63',
-  '#00bcd4', '#8bc34a',
-]
+const COLORS = ['#2ea6ff', '#ffd60a', '#30d158', '#ff3b30', '#9b59b6', '#1abc9c', '#e67e22', '#e91e63', '#00bcd4', '#8bc34a']
 
 interface Props {
   theme: Theme
@@ -58,9 +54,12 @@ export function StatsPage({ theme, onBack }: Props) {
       })
   }, [])
 
+  const totalMessages = users.reduce((sum, u) => sum + u.count, 0)
+  const topUser = users.length > 0 ? users.reduce((a, b) => (a.count > b.count ? a : b)) : null
+
   return (
     <div className={styles.page} style={{ background: theme.bg, color: theme.text }}>
-      <div className={styles.header}>
+      <div className={styles.header} style={{ borderColor: theme.border }}>
         <button
           className={styles.backButton}
           style={{ color: theme.accent }}
@@ -68,51 +67,94 @@ export function StatsPage({ theme, onBack }: Props) {
         >
           ← Назад
         </button>
+        <span className={styles.headerTitle}>Статистика</span>
+        <span className={styles.headerSpacer} />
       </div>
 
-      <h1 className={styles.title}>Топ за месяц по сообщениям</h1>
+      <div className={styles.body}>
+        {status === 'loading' && <p style={{ color: theme.hint }}>Загрузка...</p>}
+        {status === 'error' && <p style={{ color: theme.hint }}>{errorMsg}</p>}
+        {status === 'empty' && <p style={{ color: theme.hint }}>Нет данных за этот месяц</p>}
 
-      {status === 'loading' && <p style={{ color: theme.hint }}>Загрузка...</p>}
-      {status === 'error' && <p style={{ color: theme.hint }}>{errorMsg}</p>}
-      {status === 'empty' && <p style={{ color: theme.hint }}>Нет данных за этот месяц</p>}
+        {status === 'ok' && (
+          <>
+            <div className={styles.metricsRow}>
+              <div
+                className={styles.metricCard}
+                style={{ background: theme.surface, borderColor: theme.border }}
+              >
+                <span className={styles.metricNumber}>{totalMessages}</span>
+                <span className={styles.metricLabel} style={{ color: theme.secondary }}>
+                  Сообщений
+                </span>
+              </div>
+              <div
+                className={styles.metricCard}
+                style={{ background: theme.surface, borderColor: theme.border }}
+              >
+                <span className={styles.metricNumber}>{users.length}</span>
+                <span className={styles.metricLabel} style={{ color: theme.secondary }}>
+                  Участников
+                </span>
+              </div>
+            </div>
 
-      {status === 'ok' && (
-        <ResponsiveContainer width="100%" height={360}>
-          <PieChart>
-            <Pie
-              data={users}
-              dataKey="count"
-              nameKey="name"
-              cx="50%"
-              cy="45%"
-              outerRadius={120}
-              label={({ x, y, name, percent }) => {
-                const pct = `${(percent * 100).toFixed(0)}%`
-                if (percent < 0.05) {
-                  return <text x={x} y={y} textAnchor="middle" fill={theme.text} fontSize={12}>{pct}</text>
-                }
-                return (
-                  <text x={x} y={y} textAnchor="middle" fill={theme.text} fontSize={12}>
-                    <tspan x={x} dy="-0.4em">{name}</tspan>
-                    <tspan x={x} dy="1.2em">{pct}</tspan>
-                  </text>
-                )
-              }}
-              labelLine={false}
+            {topUser && (
+              <div
+                className={styles.metricCardFull}
+                style={{ background: theme.surface, borderColor: theme.border }}
+              >
+                <span className={styles.metricNumber}>{topUser.name}</span>
+                <span className={styles.metricLabel} style={{ color: theme.secondary }}>
+                  Самый активный · {topUser.count} сообщений
+                </span>
+              </div>
+            )}
+
+            <div
+              className={styles.chartCard}
+              style={{ background: theme.surface, borderColor: theme.border }}
             >
-              {users.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip theme={theme} />} />
-            <Legend
-              formatter={(value) => (
-                <span style={{ color: theme.text, fontSize: 13 }}>{value}</span>
-              )}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      )}
+              <p className={styles.chartTitle} style={{ color: theme.secondary }}>
+                Топ за месяц по сообщениям
+              </p>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={users}
+                    dataKey="count"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={110}
+                    innerRadius={50}
+                    label={({ x, y, percent }) => {
+                      const pct = `${(percent * 100).toFixed(0)}%`
+                      if (percent < 0.05) return null
+                      return (
+                        <text x={x} y={y} textAnchor="middle" fill={theme.text} fontSize={12}>
+                          {pct}
+                        </text>
+                      )
+                    }}
+                    labelLine={false}
+                  >
+                    {users.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip theme={theme} />} />
+                  <Legend
+                    formatter={(value) => (
+                      <span style={{ color: theme.text, fontSize: 13 }}>{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

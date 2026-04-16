@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/colors.ts","./src/main.tsx","./src/vite-env.d.ts","./src/components/customtooltip/index.tsx","./src/hooks/usetheme.ts","./src/pages/homepage/index.tsx","./src/pages/promptdetailpage/index.tsx","./src/pages/promptslistpage/index.tsx","./src/pages/statspage/index.tsx","./src/types/index.ts"],"version":"5.9.3"}

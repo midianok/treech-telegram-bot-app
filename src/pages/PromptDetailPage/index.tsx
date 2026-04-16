@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Theme } from '../../hooks/useTheme'
 import { AiAgent } from '../../types'
 import styles from './PromptDetailPage.module.css'
@@ -14,8 +14,9 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
   const [prompt, setPrompt] = useState(agent?.prompt ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [applyStatus, setApplyStatus] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
-  const [deleteStatus, setDeleteStatus] = useState<'idle' | 'confirm' | 'deleting'>('idle')
+  const [deleteStep, setDeleteStep] = useState<0 | 1>(0)
   const [errorMsg, setErrorMsg] = useState('')
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isCreate = agent === null
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -23,6 +24,13 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
   const chatId = window.Telegram?.WebApp.initDataUnsafe.start_param
     ?? new URLSearchParams(window.location.search).get('chatId')
     ?? import.meta.env.VITE_DEBUG_CHAT_ID
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setDeleteStep(0)
+    }
+  }, [])
 
   function handleSave() {
     setSaveStatus('saving')
@@ -34,10 +42,10 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, prompt }),
         })
-      : fetch(`${apiBase}/saturn-api/api/ai-agents/${agent.id}/prompt`, {
+      : fetch(`${apiBase}/saturn-api/api/ai-agents/${agent.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ name, prompt }),
         })
 
     req
@@ -52,21 +60,24 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
   }
 
   function handleDelete() {
-    if (deleteStatus === 'idle') {
-      setDeleteStatus('confirm')
-      return
+    if (deleteStep === 0) {
+      setDeleteStep(1)
+      deleteTimerRef.current = setTimeout(() => {
+        setDeleteStep(0)
+      }, 3000)
+    } else {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setDeleteStep(0)
+      setErrorMsg('')
+      fetch(`${apiBase}/saturn-api/api/ai-agents/${agent!.id}`, { method: 'DELETE' })
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          onBack()
+        })
+        .catch(e => {
+          setErrorMsg(String(e.message))
+        })
     }
-    setDeleteStatus('deleting')
-    setErrorMsg('')
-    fetch(`${apiBase}/saturn-api/api/ai-agents/${agent!.id}`, { method: 'DELETE' })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        onBack()
-      })
-      .catch(e => {
-        setErrorMsg(String(e.message))
-        setDeleteStatus('idle')
-      })
   }
 
   function handleApply() {
@@ -94,80 +105,103 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
 
   return (
     <div className={styles.page} style={{ background: theme.bg, color: theme.text }}>
-      <div className={styles.header}>
+      <div className={styles.header} style={{ borderColor: theme.border }}>
         <button
           className={styles.backButton}
           style={{ color: theme.accent }}
-          onClick={onBack}
+          onClick={() => {
+            if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+            setDeleteStep(0)
+            onBack()
+          }}
         >
           ← Назад
         </button>
+        <span className={styles.headerTitle}>Редактор</span>
+        <button
+          className={styles.saveHeaderButton}
+          style={{ color: theme.accent }}
+          onClick={handleSave}
+          disabled={saveStatus === 'saving'}
+        >
+          {saveStatus === 'saving' ? 'Сохр...' : saveStatus === 'saved' ? 'Сохранено ✓' : 'Сохранить'}
+        </button>
       </div>
 
-      <h1 className={styles.title}>{isCreate ? 'Новый промпт' : agent.name}</h1>
+      <div className={styles.body}>
+        <p className={styles.fieldLabel} style={{ color: theme.secondary }}>Название</p>
+        <div
+          className={styles.fieldCard}
+          style={{ background: theme.surface, borderColor: theme.border }}
+        >
+          <input
+            className={styles.fieldInput}
+            style={{ color: theme.text }}
+            placeholder="Название промпта"
+            value={name}
+            onChange={e => {
+              setName(e.target.value)
+              setSaveStatus('idle')
+            }}
+          />
+        </div>
 
-      {isCreate && (
-        <input
-          className={styles.input}
-          style={{
-            background: theme.bg,
-            color: theme.text,
-            borderColor: theme.hint,
-          }}
-          placeholder="Название"
-          value={name}
-          onChange={e => {
-            setName(e.target.value)
-            setSaveStatus('idle')
-          }}
-        />
-      )}
+        <p className={styles.fieldLabel} style={{ color: theme.secondary }}>Промпт</p>
+        <div
+          className={styles.fieldCard}
+          style={{ background: theme.surface, borderColor: theme.border }}
+        >
+          <textarea
+            className={styles.fieldTextarea}
+            style={{ color: theme.text }}
+            placeholder="Введите текст промпта"
+            value={prompt}
+            onChange={e => {
+              setPrompt(e.target.value)
+              setSaveStatus('idle')
+            }}
+            rows={10}
+          />
+        </div>
 
-      <textarea
-        className={styles.textarea}
-        style={{
-          background: theme.bg,
-          color: theme.text,
-          borderColor: theme.hint,
-        }}
-        placeholder="Промпт"
-        value={prompt}
-        onChange={e => {
-          setPrompt(e.target.value)
-          setSaveStatus('idle')
-        }}
-        rows={12}
-      />
+        {!isCreate && (
+          <>
+            <p className={styles.fieldLabel} style={{ color: theme.secondary }}>Применить к чату</p>
+            <button
+              className={styles.applyButton}
+              style={{ background: theme.surface, borderColor: theme.border, color: theme.accent }}
+              onClick={handleApply}
+              disabled={applyStatus === 'applying'}
+            >
+              {applyStatus === 'applying' ? 'Применение...' : applyStatus === 'applied' ? 'Применено ✓' : 'Применить к чату'}
+            </button>
+          </>
+        )}
 
-      {errorMsg && <p className={styles.error} style={{ color: '#ca5f5f' }}>{errorMsg}</p>}
+        {errorMsg && (
+          <p className={styles.error} style={{ color: '#ff3b30' }}>{errorMsg}</p>
+        )}
 
-      <div className={styles.actions}>
         <button
-          className={styles.button}
+          className={styles.saveButton}
           style={{ background: theme.accent }}
           onClick={handleSave}
           disabled={saveStatus === 'saving'}
         >
           {saveStatus === 'saving' ? 'Сохранение...' : saveStatus === 'saved' ? 'Сохранено ✓' : 'Сохранить'}
         </button>
+
         {!isCreate && (
           <button
-            className={styles.button}
-            style={{ background: theme.accent }}
-            onClick={handleApply}
-            disabled={applyStatus === 'applying'}
-          >
-            {applyStatus === 'applying' ? 'Применение...' : applyStatus === 'applied' ? 'Применено ✓' : 'Применить к чату'}
-          </button>
-        )}
-        {!isCreate && (
-          <button
-            className={styles.button}
-            style={{ background: deleteStatus === 'confirm' ? '#ca5f5f' : '#888' }}
+            className={styles.deleteButton}
+            style={
+              deleteStep === 1
+                ? { background: '#ff3b30', borderColor: '#ff3b30', color: '#ffffff' }
+                : { background: 'transparent', borderColor: '#ff3b30', color: '#ff3b30' }
+            }
             onClick={handleDelete}
-            disabled={deleteStatus === 'deleting'}
           >
-            {deleteStatus === 'deleting' ? 'Удаление...' : deleteStatus === 'confirm' ? 'Нажмите ещё раз для подтверждения' : 'Удалить промпт'}
+            {deleteStep === 1 ? 'Нажмите ещё раз для удаления' : 'Удалить промпт'}
           </button>
         )}
       </div>
