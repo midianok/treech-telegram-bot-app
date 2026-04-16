@@ -14,6 +14,7 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
   const [prompt, setPrompt] = useState(agent?.prompt ?? '')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [applyStatus, setApplyStatus] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle')
+  const [deleteStatus, setDeleteStatus] = useState<'idle' | 'confirm' | 'deleting'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
   const isCreate = agent === null
@@ -47,6 +48,24 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
       .catch(e => {
         setErrorMsg(String(e.message))
         setSaveStatus('error')
+      })
+  }
+
+  function handleDelete() {
+    if (deleteStatus === 'idle') {
+      setDeleteStatus('confirm')
+      return
+    }
+    setDeleteStatus('deleting')
+    setErrorMsg('')
+    fetch(`${apiBase}/saturn-api/api/ai-agents/${agent!.id}`, { method: 'DELETE' })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        onBack()
+      })
+      .catch(e => {
+        setErrorMsg(String(e.message))
+        setDeleteStatus('idle')
       })
   }
 
@@ -139,6 +158,16 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
             disabled={applyStatus === 'applying'}
           >
             {applyStatus === 'applying' ? 'Применение...' : applyStatus === 'applied' ? 'Применено ✓' : 'Применить к чату'}
+          </button>
+        )}
+        {!isCreate && (
+          <button
+            className={styles.button}
+            style={{ background: deleteStatus === 'confirm' ? '#ca5f5f' : '#888' }}
+            onClick={handleDelete}
+            disabled={deleteStatus === 'deleting'}
+          >
+            {deleteStatus === 'deleting' ? 'Удаление...' : deleteStatus === 'confirm' ? 'Нажмите ещё раз для подтверждения' : 'Удалить промпт'}
           </button>
         )}
       </div>
