@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../../api'
 import { Theme } from '../../hooks/useTheme'
 import { AiAgent } from '../../types'
 import styles from './PromptsListPage.module.css'
@@ -17,19 +18,18 @@ export function PromptsListPage({ theme, onBack, onSelect, onCreate }: Props) {
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
     const chatId = window.Telegram?.WebApp.initDataUnsafe.start_param
       ?? new URLSearchParams(window.location.search).get('chatId')
       ?? import.meta.env.VITE_DEBUG_CHAT_ID
 
-    const agentsReq = fetch(`${apiBase}/saturn-api/api/ai-agents`)
+    const agentsReq = apiFetch('/saturn-api/api/ai-agents')
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json() as Promise<AiAgent[]>
       })
 
     const activeReq = chatId
-      ? fetch(`${apiBase}/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`)
+      ? apiFetch(`/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`)
           .then(r => (r.ok ? r.json() as Promise<{ id: string }> : null))
           .catch(() => null)
       : Promise.resolve(null)

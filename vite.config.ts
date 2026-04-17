@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/tg-app/',
   server: {
+    allowedHosts: true,
     proxy: {
       '/saturn-api': {
         target: 'http://localhost:5001',

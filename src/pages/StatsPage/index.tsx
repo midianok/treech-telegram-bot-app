@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { CustomTooltip } from '../../components/CustomTooltip'
+import { apiFetch } from '../../api'
 import { Theme } from '../../hooks/useTheme'
 import { User } from '../../types'
 import styles from './StatsPage.module.css'
@@ -34,8 +35,7 @@ export function StatsPage({ theme, onBack }: Props) {
       return
     }
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
-    fetch(`${apiBase}/saturn-api/api/stats/monthly?chatId=${encodeURIComponent(chatId)}`)
+    apiFetch(`/saturn-api/api/stats/monthly?chatId=${encodeURIComponent(chatId)}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json() as Promise<{ users: User[] }>

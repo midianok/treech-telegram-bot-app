@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../../api'
 import { Theme } from '../../hooks/useTheme'
 import { AiAgent } from '../../types'
 import styles from './PromptDetailPage.module.css'
@@ -19,7 +20,6 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isCreate = agent === null
-  const apiBase = import.meta.env.VITE_API_BASE_URL ?? ''
 
   const chatId = window.Telegram?.WebApp.initDataUnsafe.start_param
     ?? new URLSearchParams(window.location.search).get('chatId')
@@ -37,12 +37,12 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
     setErrorMsg('')
 
     const req = isCreate
-      ? fetch(`${apiBase}/saturn-api/api/ai-agents`, {
+      ? apiFetch('/saturn-api/api/ai-agents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, prompt }),
         })
-      : fetch(`${apiBase}/saturn-api/api/ai-agents/${agent.id}`, {
+      : apiFetch(`/saturn-api/api/ai-agents/${agent.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, prompt }),
@@ -69,7 +69,7 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
       if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
       setDeleteStep(0)
       setErrorMsg('')
-      fetch(`${apiBase}/saturn-api/api/ai-agents/${agent!.id}`, { method: 'DELETE' })
+      apiFetch(`/saturn-api/api/ai-agents/${agent!.id}`, { method: 'DELETE' })
         .then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`)
           onBack()
@@ -88,7 +88,7 @@ export function PromptDetailPage({ theme, agent, onBack }: Props) {
     }
     setApplyStatus('applying')
     setErrorMsg('')
-    fetch(`${apiBase}/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`, {
+    apiFetch(`/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agentId: agent!.id }),
