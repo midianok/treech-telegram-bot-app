@@ -14,7 +14,7 @@ export function CustomTooltip({ active, payload, theme }: Props) {
       className={styles.tooltip}
       style={{
         background: theme.bg,
-        border: `1px solid ${theme.hint}`,
+        border: `1px solid ${theme.divider}`,
         color: theme.text,
       }}
     >

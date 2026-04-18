@@ -7,4 +7,5 @@ export interface AiAgent {
   id: string
   name: string
   prompt: string
+  color?: string
 }
