@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiFetch } from '../../api'
 import { Theme } from '../../hooks/useTheme'
-import { User } from '../../types'
+import { OperationCall, User } from '../../types'
 import { Icon } from '../../components/ui'
 
 interface Props {
@@ -20,10 +20,28 @@ function getMonthStart(): string {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 }
 
+interface AggregatedOp { name: string; count: number }
+
+function aggregateOps(calls: OperationCall[]): { topOps: AggregatedOp[]; topUsers: AggregatedOp[] } {
+  const ops: Record<string, number> = {}
+  const users: Record<string, number> = {}
+  for (const c of calls) {
+    const op = (c.operationName ?? '—').replace(/Operation$/i, '')
+    ops[op] = (ops[op] ?? 0) + 1
+    const user = c.userName || String(c.userId)
+    users[user] = (users[user] ?? 0) + 1
+  }
+  const sort = (map: Record<string, number>) =>
+    Object.entries(map).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+  return { topOps: sort(ops).slice(0, 10), topUsers: sort(users).slice(0, 10) }
+}
+
 export function StatsScreen({ theme, chatId }: Props) {
   const [period, setPeriod] = useState<'week' | 'month'>('week')
   const [weekly, setWeekly] = useState<User[]>([])
   const [monthly, setMonthly] = useState<User[]>([])
+  const [weeklyOps, setWeeklyOps] = useState<OperationCall[]>([])
+  const [monthlyOps, setMonthlyOps] = useState<OperationCall[]>([])
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -31,21 +49,30 @@ export function StatsScreen({ theme, chatId }: Props) {
     if (!chatId) { setStatus('error'); setErrorMsg('chatId не указан'); return }
 
     const now = new Date().toISOString()
-    const q = (dateFrom: string) =>
-      new URLSearchParams({ chatId, dateFrom, dateTo: now, limit: '10' }).toString()
+    const q = (dateFrom: string, extra?: Record<string, string>) =>
+      new URLSearchParams({ chatId, dateFrom, dateTo: now, ...extra }).toString()
 
     Promise.all([
-      apiFetch(`/saturn-api/api/stats/top-users?${q(getWeekStart())}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
-      apiFetch(`/saturn-api/api/stats/top-users?${q(getMonthStart())}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
-    ]).then(([w, m]) => {
+      apiFetch(`/saturn-api/api/stats/top-users?${q(getWeekStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
+      apiFetch(`/saturn-api/api/stats/top-users?${q(getMonthStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
+      apiFetch(`/saturn-api/api/stats/operation-calls?${q(getWeekStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
+      apiFetch(`/saturn-api/api/stats/operation-calls?${q(getMonthStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
+    ]).then(([w, m, wo, mo]) => {
       setWeekly(w)
       setMonthly(m)
+      setWeeklyOps(wo)
+      setMonthlyOps(mo)
       setStatus('ok')
     }).catch(e => {
       setErrorMsg(String(e.message))
       setStatus('error')
     })
   }, [chatId])
+
+  const { topOps, topUsers: topOpUsers } = useMemo(
+    () => aggregateOps(period === 'week' ? weeklyOps : monthlyOps),
+    [period, weeklyOps, monthlyOps],
+  )
 
   if (status === 'loading') {
     return <div style={{ padding: 20, color: theme.textMuted }}>Загрузка...</div>
@@ -57,6 +84,9 @@ export function StatsScreen({ theme, chatId }: Props) {
   const data = period === 'week' ? weekly : monthly
   const max = Math.max(...data.map(u => u.count), 1)
   const total = data.reduce((s, u) => s + u.count, 0)
+
+  const maxOps = Math.max(...topOps.map(o => o.count), 1)
+  const maxOpUsers = Math.max(...topOpUsers.map(u => u.count), 1)
 
   return (
     <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -112,6 +142,109 @@ export function StatsScreen({ theme, chatId }: Props) {
             {data.map((u, i) => {
               const w = (u.count / max) * 100
               const isLast = i === data.length - 1
+              const rankColors = ['#FACC15', '#C0C5D0', '#CD7F32']
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '13px 16px',
+                  borderBottom: isLast ? 'none' : `0.5px solid ${theme.divider}`,
+                }}>
+                  <div style={{
+                    width: 24, textAlign: 'center',
+                    fontSize: 15, fontWeight: 700,
+                    color: i < 3 ? rankColors[i] : theme.textMuted,
+                    fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3,
+                  }}>{i + 1}</div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <div style={{
+                        fontSize: 15, fontWeight: 500, color: theme.text,
+                        letterSpacing: -0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{u.name}</div>
+                      <div style={{
+                        fontSize: 14, fontWeight: 600, color: theme.text,
+                        fontVariantNumeric: 'tabular-nums', marginLeft: 10, flexShrink: 0,
+                      }}>{u.count.toLocaleString('ru-RU')}</div>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: theme.chip, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', width: `${w}%`,
+                        background: i < 3
+                          ? `linear-gradient(90deg, ${theme.accent}, ${theme.accentDim})`
+                          : theme.accent,
+                        borderRadius: 3, transition: 'width 0.4s ease-out',
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Top operations chart */}
+      <div>
+        <div style={{
+          fontSize: 13, color: theme.textMuted, textTransform: 'uppercase',
+          letterSpacing: 0.3, padding: '2px 4px 10px',
+        }}>Топ операций</div>
+
+        {topOps.length === 0 ? (
+          <div style={{ fontSize: 14, color: theme.textMuted, padding: '0 4px' }}>Нет данных за этот период</div>
+        ) : (
+          <div style={{ background: theme.surface, borderRadius: 14, boxShadow: theme.shadow, overflow: 'hidden' }}>
+            {topOps.map((op, i) => {
+              const w = (op.count / maxOps) * 100
+              const isLast = i === topOps.length - 1
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '13px 16px',
+                  borderBottom: isLast ? 'none' : `0.5px solid ${theme.divider}`,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <div style={{
+                        fontSize: 14, fontWeight: 500, color: theme.text,
+                        letterSpacing: -0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        fontFamily: 'monospace',
+                      }}>{op.name}</div>
+                      <div style={{
+                        fontSize: 14, fontWeight: 600, color: theme.text,
+                        fontVariantNumeric: 'tabular-nums', marginLeft: 10, flexShrink: 0,
+                      }}>{op.count.toLocaleString('ru-RU')}</div>
+                    </div>
+                    <div style={{ height: 5, borderRadius: 3, background: theme.chip, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', width: `${w}%`,
+                        background: `linear-gradient(90deg, ${theme.accent}, ${theme.accentDim})`,
+                        borderRadius: 3, transition: 'width 0.4s ease-out',
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Top users by operations */}
+      <div>
+        <div style={{
+          fontSize: 13, color: theme.textMuted, textTransform: 'uppercase',
+          letterSpacing: 0.3, padding: '2px 4px 10px',
+        }}>Кто вызывает больше всего операций</div>
+
+        {topOpUsers.length === 0 ? (
+          <div style={{ fontSize: 14, color: theme.textMuted, padding: '0 4px' }}>Нет данных за этот период</div>
+        ) : (
+          <div style={{ background: theme.surface, borderRadius: 14, boxShadow: theme.shadow, overflow: 'hidden' }}>
+            {topOpUsers.map((u, i) => {
+              const w = (u.count / maxOpUsers) * 100
+              const isLast = i === topOpUsers.length - 1
               const rankColors = ['#FACC15', '#C0C5D0', '#CD7F32']
               return (
                 <div key={i} style={{

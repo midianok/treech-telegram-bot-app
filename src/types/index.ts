@@ -9,3 +9,10 @@ export interface AiAgent {
   prompt: string
   color?: string
 }
+
+export interface OperationCall {
+  operationName: string | null
+  calledAt: string
+  userId: number
+  userName: string | null
+}
