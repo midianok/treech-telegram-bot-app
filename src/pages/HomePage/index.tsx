@@ -13,13 +13,15 @@ interface Props {
   canWrite: boolean
   onGoAgents: () => void
   onGoStats: () => void
+  onGoImagePrompts: () => void
   onGoEdit: (id: string) => void
   onGoNew: () => void
+  onGoNewImagePrompt: () => void
 }
 
 export function HomeScreen({
   theme, chatTitle, agents, activeAgentId, chatId, canWrite,
-  onGoAgents, onGoStats, onGoEdit, onGoNew,
+  onGoAgents, onGoStats, onGoImagePrompts, onGoEdit, onGoNew, onGoNewImagePrompt,
 }: Props) {
   const [todayCount, setTodayCount] = useState<number | null>(null)
   const activeAgent = agents.find(a => a.id === activeAgentId)
@@ -113,8 +115,12 @@ export function HomeScreen({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <QuickTile theme={theme} icon="sparkle" label="Все агенты" sublabel={`${agents.length} профилей`} onClick={onGoAgents} />
           <QuickTile theme={theme} icon="chart" label="Статистика" sublabel="топ участников" onClick={onGoStats} />
+          <QuickTile theme={theme} icon="image" label="Промпты картинок" sublabel="для генерации" onClick={onGoImagePrompts} />
           {canWrite && (
             <QuickTile theme={theme} icon="plus" label="Новый агент" sublabel="с нуля" onClick={onGoNew} />
+          )}
+          {canWrite && (
+            <QuickTile theme={theme} icon="plus" label="Новый промпт" sublabel="для картинок" onClick={onGoNewImagePrompt} />
           )}
         </div>
       </div>

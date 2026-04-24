@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { apiFetch } from './api'
-import { AiAgent } from './types'
+import { AiAgent, ImagePrompt } from './types'
 import { Icon, Tab, TabBar, TopBar } from './components/ui'
 import { HomeScreen } from './pages/HomePage'
 import { AgentsScreen } from './pages/PromptsListPage'
 import { EditAgentScreen } from './pages/PromptDetailPage'
 import { StatsScreen } from './pages/StatsPage'
+import { ImagePromptListScreen } from './pages/ImagePromptListPage'
+import { EditImagePromptScreen } from './pages/ImagePromptDetailPage'
 
 const AGENT_COLORS = ['#FF7A59', '#C4B5FD', '#4FCF6A', '#FACC15', '#2AABEE', '#E879F9']
 const WRITE_USERS = ['qwrzlp', 'ilya_naprimer']
 
-type View = { kind: 'tab' } | { kind: 'edit'; id: string | null }
+type View =
+  | { kind: 'tab' }
+  | { kind: 'edit-agent'; id: string | null }
+  | { kind: 'edit-image-prompt'; id: string | null }
 
 export default function App() {
   const theme = useTheme()
@@ -19,6 +24,7 @@ export default function App() {
   const [view, setView] = useState<View>({ kind: 'tab' })
   const [agents, setAgents] = useState<AiAgent[]>([])
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
+  const [imagePrompts, setImagePrompts] = useState<ImagePrompt[]>([])
 
   const username = window.Telegram?.WebApp?.initDataUnsafe?.user?.username ?? ''
   const canWrite = import.meta.env.DEV || WRITE_USERS.includes(username)
@@ -39,6 +45,11 @@ export default function App() {
       .then(setAgents)
       .catch(() => {})
 
+    apiFetch('/saturn-api/api/image-prompts')
+      .then(r => r.ok ? r.json() as Promise<ImagePrompt[]> : [])
+      .then(setImagePrompts)
+      .catch(() => {})
+
     if (chatId) {
       apiFetch(`/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`)
         .then(r => r.ok ? r.json() as Promise<{ id: string }> : null)
@@ -52,12 +63,19 @@ export default function App() {
     [agents]
   )
 
-  const isEditView = view.kind === 'edit'
-  const editingId = isEditView ? (view as { kind: 'edit'; id: string | null }).id : null
-  const editingAgent = editingId ? (agentsWithColor.find(a => a.id === editingId) ?? null) : null
+  const isEditAgent = view.kind === 'edit-agent'
+  const isEditImagePrompt = view.kind === 'edit-image-prompt'
+  const isEditView = isEditAgent || isEditImagePrompt
+
+  const editingAgentId = isEditAgent ? (view as { kind: 'edit-agent'; id: string | null }).id : null
+  const editingAgent = editingAgentId ? (agentsWithColor.find(a => a.id === editingAgentId) ?? null) : null
+
+  const editingImagePromptId = isEditImagePrompt ? (view as { kind: 'edit-image-prompt'; id: string | null }).id : null
+  const editingImagePrompt = editingImagePromptId ? (imagePrompts.find(p => p.id === editingImagePromptId) ?? null) : null
 
   const goTab = (t: Tab) => { setView({ kind: 'tab' }); setTab(t) }
-  const goEdit = (id: string | null) => setView({ kind: 'edit', id })
+  const goEditAgent = (id: string | null) => setView({ kind: 'edit-agent', id })
+  const goEditImagePrompt = (id: string | null) => setView({ kind: 'edit-image-prompt', id })
 
   const handleSaveAgent = (id: string | null | undefined, name: string, prompt: string) => {
     const body = JSON.stringify({ name, prompt })
@@ -91,6 +109,29 @@ export default function App() {
     }).then(r => { if (r.ok) setActiveAgentId(id) })
   }
 
+  const handleSaveImagePrompt = (id: string | null | undefined, name: string, keywords: string, prompt: string) => {
+    const body = JSON.stringify({ name, keywords, prompt })
+    if (id) {
+      apiFetch(`/saturn-api/api/image-prompts/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body,
+      }).then(r => {
+        if (r.ok) setImagePrompts(prev => prev.map(p => p.id === id ? { ...p, name, keywords, prompt } : p))
+      })
+    } else {
+      apiFetch('/saturn-api/api/image-prompts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      }).then(r => r.ok ? r.json() as Promise<ImagePrompt> : null)
+        .then(p => { if (p) setImagePrompts(prev => [...prev, p]) })
+    }
+    goTab('image-prompts')
+  }
+
+  const handleDeleteImagePrompt = (id: string) => {
+    apiFetch(`/saturn-api/api/image-prompts/${id}`, { method: 'DELETE' })
+    setImagePrompts(prev => prev.filter(p => p.id !== id))
+    goTab('image-prompts')
+  }
+
   // ── Header config ──
   const chatTitle = window.Telegram?.WebApp?.initDataUnsafe?.chat?.title ?? 'чат'
 
@@ -99,9 +140,22 @@ export default function App() {
   let headerLeading: React.ReactNode = null
   let headerTrailing: React.ReactNode = null
 
-  if (isEditView) {
+  if (isEditAgent) {
     headerTitle = editingAgent ? 'Править агента' : 'Новый агент'
     headerSubtitle = editingAgent ? editingAgent.name : 'создайте собственного'
+    headerLeading = (
+      <button onClick={() => setView({ kind: 'tab' })} style={{
+        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', color: theme.accent, fontSize: 16,
+        gap: 2, marginLeft: -4,
+      }}>
+        <Icon name="back" size={24} color={theme.accent} />
+        <span style={{ fontWeight: 400 }}>Назад</span>
+      </button>
+    )
+  } else if (isEditImagePrompt) {
+    headerTitle = editingImagePrompt ? 'Редактировать промпт' : 'Новый промпт'
+    headerSubtitle = editingImagePrompt ? editingImagePrompt.name : 'для генерации изображений'
     headerLeading = (
       <button onClick={() => setView({ kind: 'tab' })} style={{
         background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
@@ -117,7 +171,20 @@ export default function App() {
     headerSubtitle = `${agentsWithColor.length} профилей · выберите активного`
     if (canWrite) {
       headerTrailing = (
-        <button onClick={() => goEdit(null)} style={{
+        <button onClick={() => goEditAgent(null)} style={{
+          width: 36, height: 36, borderRadius: 18, background: 'transparent', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        }}>
+          <Icon name="plus" size={22} color={theme.accent} />
+        </button>
+      )
+    }
+  } else if (tab === 'image-prompts') {
+    headerTitle = 'Промпты изображений'
+    headerSubtitle = `${imagePrompts.length} промптов`
+    if (canWrite) {
+      headerTrailing = (
+        <button onClick={() => goEditImagePrompt(null)} style={{
           width: 36, height: 36, borderRadius: 18, background: 'transparent', border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
         }}>
@@ -141,7 +208,7 @@ export default function App() {
         leading={headerLeading} trailing={headerTrailing} />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {isEditView ? (
+        {isEditAgent ? (
           <EditAgentScreen
             theme={theme}
             agent={editingAgent}
@@ -149,6 +216,15 @@ export default function App() {
             onBack={() => setView({ kind: 'tab' })}
             onSave={handleSaveAgent}
             onDelete={handleDeleteAgent}
+          />
+        ) : isEditImagePrompt ? (
+          <EditImagePromptScreen
+            theme={theme}
+            prompt={editingImagePrompt}
+            canWrite={canWrite}
+            onBack={() => setView({ kind: 'tab' })}
+            onSave={handleSaveImagePrompt}
+            onDelete={handleDeleteImagePrompt}
           />
         ) : tab === 'home' ? (
           <HomeScreen
@@ -160,8 +236,10 @@ export default function App() {
             canWrite={canWrite}
             onGoAgents={() => goTab('agents')}
             onGoStats={() => goTab('stats')}
-            onGoEdit={goEdit}
-            onGoNew={() => goEdit(null)}
+            onGoImagePrompts={() => goTab('image-prompts')}
+            onGoEdit={goEditAgent}
+            onGoNew={() => goEditAgent(null)}
+            onGoNewImagePrompt={() => goEditImagePrompt(null)}
           />
         ) : tab === 'agents' ? (
           <AgentsScreen
@@ -170,9 +248,18 @@ export default function App() {
             activeAgentId={activeAgentId}
             canWrite={canWrite}
             onSelect={handleSelectAgent}
-            onEdit={goEdit}
+            onEdit={goEditAgent}
             onDelete={handleDeleteAgent}
-            onNew={() => goEdit(null)}
+            onNew={() => goEditAgent(null)}
+          />
+        ) : tab === 'image-prompts' ? (
+          <ImagePromptListScreen
+            theme={theme}
+            prompts={imagePrompts}
+            canWrite={canWrite}
+            onEdit={goEditImagePrompt}
+            onDelete={handleDeleteImagePrompt}
+            onNew={() => goEditImagePrompt(null)}
           />
         ) : (
           <StatsScreen theme={theme} chatId={chatId} />

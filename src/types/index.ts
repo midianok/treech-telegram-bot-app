@@ -10,6 +10,13 @@ export interface AiAgent {
   color?: string
 }
 
+export interface ImagePrompt {
+  id: string
+  name: string
+  keywords: string
+  prompt: string
+}
+
 export interface OperationCall {
   operationName: string | null
   calledAt: string

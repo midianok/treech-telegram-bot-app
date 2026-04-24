@@ -18,6 +18,7 @@ export function Icon({ name, size = 22, color = 'currentColor', strokeWidth = 2 
     case 'trash': return <svg {...p}><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"/></svg>
     case 'calendar': return <svg {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
     case 'home': return <svg {...p}><path d="M3 11l9-8 9 8v10a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2V11z"/></svg>
+    case 'image': return <svg {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
     default: return null
   }
 }
@@ -35,7 +36,7 @@ export function Avatar({ name, color, size = 40 }: { name: string; color?: strin
   )
 }
 
-export type Tab = 'home' | 'agents' | 'stats'
+export type Tab = 'home' | 'agents' | 'image-prompts' | 'stats'
 
 export function TopBar({ theme, title, subtitle, leading, trailing }: {
   theme: Theme; title: string; subtitle?: string
@@ -64,6 +65,7 @@ export function TabBar({ theme, active, onChange }: {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Главная', icon: 'home' },
     { id: 'agents', label: 'Агенты', icon: 'sparkle' },
+    { id: 'image-prompts', label: 'Картинки', icon: 'image' },
     { id: 'stats', label: 'Статистика', icon: 'chart' },
   ]
   return (
