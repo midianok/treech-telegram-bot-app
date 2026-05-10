@@ -31,7 +31,7 @@ export function HomeScreen({
     const todayStart = new Date(
       new Date().getFullYear(), new Date().getMonth(), new Date().getDate()
     ).toISOString()
-    apiFetch(`/saturn-api/api/stats/message-count?chatId=${encodeURIComponent(chatId)}&dateFrom=${encodeURIComponent(todayStart)}`)
+    apiFetch(`/api/stats/message-count?chatId=${encodeURIComponent(chatId)}&dateFrom=${encodeURIComponent(todayStart)}`)
       .then(r => r.ok ? r.json() as Promise<{ count: number }> : null)
       .then(d => { if (d) setTodayCount(d.count) })
       .catch(() => {})

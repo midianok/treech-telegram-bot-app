@@ -53,10 +53,10 @@ export function StatsScreen({ theme, chatId }: Props) {
       new URLSearchParams({ chatId, dateFrom, dateTo: now, ...extra }).toString()
 
     Promise.all([
-      apiFetch(`/saturn-api/api/stats/top-users?${q(getWeekStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
-      apiFetch(`/saturn-api/api/stats/top-users?${q(getMonthStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
-      apiFetch(`/saturn-api/api/stats/operation-calls?${q(getWeekStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
-      apiFetch(`/saturn-api/api/stats/operation-calls?${q(getMonthStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
+      apiFetch(`/api/stats/top-users?${q(getWeekStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
+      apiFetch(`/api/stats/top-users?${q(getMonthStart(), { limit: '10' })}`).then(r => r.ok ? r.json() as Promise<User[]> : []),
+      apiFetch(`/api/stats/operation-calls?${q(getWeekStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
+      apiFetch(`/api/stats/operation-calls?${q(getMonthStart())}`).then(r => r.ok ? r.json() as Promise<OperationCall[]> : []),
     ]).then(([w, m, wo, mo]) => {
       setWeekly(w)
       setMonthly(m)

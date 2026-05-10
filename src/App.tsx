@@ -40,18 +40,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    apiFetch('/saturn-api/api/ai-agents')
+    apiFetch('/api/ai-agents')
       .then(r => r.ok ? r.json() as Promise<AiAgent[]> : [])
       .then(setAgents)
       .catch(() => {})
 
-    apiFetch('/saturn-api/api/image-prompts')
+    apiFetch('/api/image-prompts')
       .then(r => r.ok ? r.json() as Promise<ImagePrompt[]> : [])
       .then(setImagePrompts)
       .catch(() => {})
 
     if (chatId) {
-      apiFetch(`/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`)
+      apiFetch(`/api/chats/${encodeURIComponent(chatId)}/ai-agent`)
         .then(r => r.ok ? r.json() as Promise<{ id: string }> : null)
         .then(a => { if (a?.id) setActiveAgentId(a.id) })
         .catch(() => {})
@@ -80,13 +80,13 @@ export default function App() {
   const handleSaveAgent = (id: string | null | undefined, name: string, prompt: string) => {
     const body = JSON.stringify({ name, prompt })
     if (id) {
-      apiFetch(`/saturn-api/api/ai-agents/${id}`, {
+      apiFetch(`/api/ai-agents/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body,
       }).then(r => {
         if (r.ok) setAgents(prev => prev.map(a => a.id === id ? { ...a, name, prompt } : a))
       })
     } else {
-      apiFetch('/saturn-api/api/ai-agents', {
+      apiFetch('/api/ai-agents', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
       }).then(r => r.ok ? r.json() as Promise<AiAgent> : null)
         .then(a => { if (a) setAgents(prev => [...prev, a]) })
@@ -95,7 +95,7 @@ export default function App() {
   }
 
   const handleDeleteAgent = (id: string) => {
-    apiFetch(`/saturn-api/api/ai-agents/${id}`, { method: 'DELETE' })
+    apiFetch(`/api/ai-agents/${id}`, { method: 'DELETE' })
     setAgents(prev => prev.filter(a => a.id !== id))
     if (activeAgentId === id) setActiveAgentId(null)
     goTab('agents')
@@ -103,7 +103,7 @@ export default function App() {
 
   const handleSelectAgent = (id: string) => {
     if (!chatId) return
-    apiFetch(`/saturn-api/api/chats/${encodeURIComponent(chatId)}/ai-agent`, {
+    apiFetch(`/api/chats/${encodeURIComponent(chatId)}/ai-agent`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agentId: id }),
     }).then(r => { if (r.ok) setActiveAgentId(id) })
@@ -112,13 +112,13 @@ export default function App() {
   const handleSaveImagePrompt = (id: string | null | undefined, name: string, keywords: string, prompt: string) => {
     const body = JSON.stringify({ name, keywords, prompt })
     if (id) {
-      apiFetch(`/saturn-api/api/image-prompts/${id}`, {
+      apiFetch(`/api/image-prompts/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body,
       }).then(r => {
         if (r.ok) setImagePrompts(prev => prev.map(p => p.id === id ? { ...p, name, keywords, prompt } : p))
       })
     } else {
-      apiFetch('/saturn-api/api/image-prompts', {
+      apiFetch('/api/image-prompts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
       }).then(r => r.ok ? r.json() as Promise<ImagePrompt> : null)
         .then(p => { if (p) setImagePrompts(prev => [...prev, p]) })
@@ -127,7 +127,7 @@ export default function App() {
   }
 
   const handleDeleteImagePrompt = (id: string) => {
-    apiFetch(`/saturn-api/api/image-prompts/${id}`, { method: 'DELETE' })
+    apiFetch(`/api/image-prompts/${id}`, { method: 'DELETE' })
     setImagePrompts(prev => prev.filter(p => p.id !== id))
     goTab('image-prompts')
   }

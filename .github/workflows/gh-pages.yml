@@ -34,7 +34,7 @@ jobs:
       - name: Build
         run: npm run build -- --base=/treech-telegram-bot-app/
         env:
-          VITE_API_BASE_URL: https://routefabric.ru
+          VITE_API_BASE_URL: https://routefabric.ru/saturn-api
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
