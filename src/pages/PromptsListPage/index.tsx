@@ -16,15 +16,6 @@ interface Props {
 export function AgentsScreen({ theme, agents, activeAgentId, canWrite, onSelect, onEdit, onDelete, onNew }: Props) {
   return (
     <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{
-        background: `${theme.accent}12`, border: `1px solid ${theme.accent}22`,
-        borderRadius: 12, padding: '12px 14px',
-        fontSize: 13, color: theme.textMuted, lineHeight: 1.4,
-      }}>
-        Выберите агента — он будет отвечать на сообщения с префиксом{' '}
-        <b style={{ color: theme.text }}>/</b> в этом чате.
-      </div>
-
       {agents.length === 0 && (
         <div style={{ fontSize: 14, color: theme.textMuted, padding: '8px 4px' }}>Нет агентов</div>
       )}

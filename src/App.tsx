@@ -9,6 +9,7 @@ import { EditAgentScreen } from './pages/PromptDetailPage'
 import { StatsScreen } from './pages/StatsPage'
 import { ImagePromptListScreen } from './pages/ImagePromptListPage'
 import { EditImagePromptScreen } from './pages/ImagePromptDetailPage'
+import { BottomSheet } from './components/BottomSheet'
 
 const AGENT_COLORS = ['#FF7A59', '#C4B5FD', '#4FCF6A', '#FACC15', '#2AABEE', '#E879F9']
 const WRITE_USERS = ['qwrzlp', 'ilya_naprimer']
@@ -76,6 +77,7 @@ export default function App() {
   const goTab = (t: Tab) => { setView({ kind: 'tab' }); setTab(t) }
   const goEditAgent = (id: string | null) => setView({ kind: 'edit-agent', id })
   const goEditImagePrompt = (id: string | null) => setView({ kind: 'edit-image-prompt', id })
+  const closeModal = () => setView({ kind: 'tab' })
 
   const handleSaveAgent = (id: string | null | undefined, name: string, prompt: string) => {
     const body = JSON.stringify({ name, prompt })
@@ -91,14 +93,14 @@ export default function App() {
       }).then(r => r.ok ? r.json() as Promise<AiAgent> : null)
         .then(a => { if (a) setAgents(prev => [...prev, a]) })
     }
-    goTab('agents')
+    closeModal()
   }
 
   const handleDeleteAgent = (id: string) => {
     apiFetch(`/api/ai-agents/${id}`, { method: 'DELETE' })
     setAgents(prev => prev.filter(a => a.id !== id))
     if (activeAgentId === id) setActiveAgentId(null)
-    goTab('agents')
+    closeModal()
   }
 
   const handleSelectAgent = (id: string) => {
@@ -123,50 +125,22 @@ export default function App() {
       }).then(r => r.ok ? r.json() as Promise<ImagePrompt> : null)
         .then(p => { if (p) setImagePrompts(prev => [...prev, p]) })
     }
-    goTab('image-prompts')
+    closeModal()
   }
 
   const handleDeleteImagePrompt = (id: string) => {
     apiFetch(`/api/image-prompts/${id}`, { method: 'DELETE' })
     setImagePrompts(prev => prev.filter(p => p.id !== id))
-    goTab('image-prompts')
+    closeModal()
   }
 
-  // ── Header config ──
   const chatTitle = window.Telegram?.WebApp?.initDataUnsafe?.chat?.title ?? 'чат'
 
   let headerTitle = 'Treech'
   let headerSubtitle = 'Управление ботом чата'
-  let headerLeading: React.ReactNode = null
   let headerTrailing: React.ReactNode = null
 
-  if (isEditAgent) {
-    headerTitle = editingAgent ? 'Править агента' : 'Новый агент'
-    headerSubtitle = editingAgent ? editingAgent.name : 'создайте собственного'
-    headerLeading = (
-      <button onClick={() => setView({ kind: 'tab' })} style={{
-        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', color: theme.accent, fontSize: 16,
-        gap: 2, marginLeft: -4,
-      }}>
-        <Icon name="back" size={24} color={theme.accent} />
-        <span style={{ fontWeight: 400 }}>Назад</span>
-      </button>
-    )
-  } else if (isEditImagePrompt) {
-    headerTitle = editingImagePrompt ? 'Редактировать промпт' : 'Новый промпт'
-    headerSubtitle = editingImagePrompt ? editingImagePrompt.name : 'для генерации изображений'
-    headerLeading = (
-      <button onClick={() => setView({ kind: 'tab' })} style={{
-        background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', color: theme.accent, fontSize: 16,
-        gap: 2, marginLeft: -4,
-      }}>
-        <Icon name="back" size={24} color={theme.accent} />
-        <span style={{ fontWeight: 400 }}>Назад</span>
-      </button>
-    )
-  } else if (tab === 'agents') {
+  if (tab === 'agents') {
     headerTitle = 'AI-агенты'
     headerSubtitle = `${agentsWithColor.length} профилей · выберите активного`
     if (canWrite) {
@@ -197,6 +171,12 @@ export default function App() {
     headerSubtitle = chatTitle
   }
 
+  const sheetTitle = isEditAgent
+    ? (editingAgent ? 'Редактировать агента' : 'Новый агент')
+    : isEditImagePrompt
+    ? (editingImagePrompt ? 'Редактировать промпт' : 'Новый промпт')
+    : ''
+
   return (
     <div style={{
       width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
@@ -204,29 +184,10 @@ export default function App() {
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif",
       WebkitFontSmoothing: 'antialiased',
     }}>
-      <TopBar theme={theme} title={headerTitle} subtitle={headerSubtitle}
-        leading={headerLeading} trailing={headerTrailing} />
+      <TopBar theme={theme} title={headerTitle} subtitle={headerSubtitle} trailing={headerTrailing} />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {isEditAgent ? (
-          <EditAgentScreen
-            theme={theme}
-            agent={editingAgent}
-            canWrite={canWrite}
-            onBack={() => setView({ kind: 'tab' })}
-            onSave={handleSaveAgent}
-            onDelete={handleDeleteAgent}
-          />
-        ) : isEditImagePrompt ? (
-          <EditImagePromptScreen
-            theme={theme}
-            prompt={editingImagePrompt}
-            canWrite={canWrite}
-            onBack={() => setView({ kind: 'tab' })}
-            onSave={handleSaveImagePrompt}
-            onDelete={handleDeleteImagePrompt}
-          />
-        ) : tab === 'home' ? (
+        {tab === 'home' ? (
           <HomeScreen
             theme={theme}
             chatTitle={chatTitle}
@@ -266,9 +227,32 @@ export default function App() {
         )}
       </div>
 
-      {!isEditView && (
-        <TabBar theme={theme} active={tab} onChange={goTab} />
-      )}
+      <TabBar theme={theme} active={tab} onChange={goTab} />
+
+      <BottomSheet isOpen={isEditView} onClose={closeModal} theme={theme} title={sheetTitle}>
+        {isEditAgent && (
+          <EditAgentScreen
+            key={editingAgentId ?? 'new-agent'}
+            theme={theme}
+            agent={editingAgent}
+            canWrite={canWrite}
+            onBack={closeModal}
+            onSave={handleSaveAgent}
+            onDelete={handleDeleteAgent}
+          />
+        )}
+        {isEditImagePrompt && (
+          <EditImagePromptScreen
+            key={editingImagePromptId ?? 'new-image-prompt'}
+            theme={theme}
+            prompt={editingImagePrompt}
+            canWrite={canWrite}
+            onBack={closeModal}
+            onSave={handleSaveImagePrompt}
+            onDelete={handleDeleteImagePrompt}
+          />
+        )}
+      </BottomSheet>
     </div>
   )
 }
